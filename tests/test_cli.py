@@ -110,3 +110,40 @@ def test_refusal_exit_code_and_wording(repo, remote, capsys):
     assert cli.main(["-C", str(repo)]) == 2
     out = capsys.readouterr().out
     assert "act NONE" in out and "refused (SECRET)" in out and "byte-identical" in out
+
+
+def test_confirm_no_writes_nothing(repo, remote, capsys, monkeypatch):
+    import io
+    from conftest import sh
+    (repo / "hello.txt").write_text("hi\n")
+    before = sh(repo, "rev-parse", "HEAD")
+    monkeypatch.setattr("sys.stdin", io.StringIO("n\n"))
+    assert cli.main(["-C", str(repo), "-i"]) == 0
+    out = capsys.readouterr().out
+    assert "act PUSH" in out and "Continue? [y/N]" in out and "declined: would stage, commit and push; nothing written" in out
+    assert sh(repo, "rev-parse", "HEAD") == before and sh(repo, "diff", "--cached", "--name-only") == ""
+
+
+def test_confirm_yes_proceeds(repo, remote, capsys, monkeypatch):
+    import io
+    from conftest import sh
+    (repo / "hello.txt").write_text("hi\n")
+    monkeypatch.setattr("sys.stdin", io.StringIO("y\n"))
+    assert cli.main(["-C", str(repo), "--confirm"]) == 0
+    assert "pushed to origin/feature" in capsys.readouterr().out
+    assert sh(remote, "rev-parse", "feature").strip() == sh(repo, "rev-parse", "HEAD").strip()
+
+
+def test_confirm_with_no_input_fails_closed(repo, remote, capsys, monkeypatch):
+    import io
+    (repo / "hello.txt").write_text("hi\n")
+    monkeypatch.setattr("sys.stdin", io.StringIO(""))
+    assert cli.main(["-C", str(repo), "-i"]) == 0
+    assert "declined" in capsys.readouterr().out
+
+
+def test_ruling_prints_before_the_outcome(repo, remote, capsys):
+    (repo / "hello.txt").write_text("hi\n")
+    assert cli.main(["-C", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert out.index("act PUSH") < out.index("FORWARD    1") < out.index("-> staged 1 path")

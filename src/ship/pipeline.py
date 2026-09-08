@@ -139,6 +139,7 @@ class Outcome:
     pushed: Optional[str] = None
     failed: Optional[str] = None       # "stage" | "commit" | "push"
     error: str = ""
+    declined: bool = False             # the human said no at the confirmation
 
 
 def message_text(ruling: Ruling, msg_rel: str) -> str:
@@ -261,16 +262,24 @@ def default_eyes(mode: Optional[str] = None) -> Eyes:
 
 
 def run(repo: str, eyes: Optional[Eyes] = None, hint: str = "", dry_run: bool = False,
-        fetch_timeout: int = 60, check_timeout: int = 600):
+        fetch_timeout: int = 60, check_timeout: int = 600,
+        confirm: Optional[Callable[[Ruling], bool]] = None):
+    """Rule, then act.  `confirm(ruling)` is asked once, after the ruling and before the
+    first git write; a False answer writes nothing.  It is the human's gate, not the law's."""
     if eyes is None:
         eyes = default_eyes()
     ruling = rule(repo, eyes, hint, fetch_timeout, check_timeout)
-    outcome = actuate(repo, ruling, dry_run)
+    if confirm is not None and ruling.act != NONE and not dry_run and not confirm(ruling):
+        outcome = Outcome(act=ruling.act, declined=True)
+    else:
+        outcome = actuate(repo, ruling, dry_run)
     return ruling, outcome, exit_code(ruling, outcome)
 
 
 # ---------------------------------------------------------------- reporting
-def render(ruling: Ruling, outcome: Outcome) -> str:
+def render_ruling(ruling: Ruling) -> str:
+    """The report's first half: the byte, every measured bit, and what was skipped.
+    Printed before anything is written, so the reader sees the ruling first."""
     head = f"ship  byte 0x{ruling.byte:02X}  {ruling.bits()}"
     lines = [f"{head:<50}  act {ruling.act_name}"]
     for b in ORDER:
@@ -278,8 +287,16 @@ def render(ruling: Ruling, outcome: Outcome) -> str:
             lines.append(f"  {NAMES[b]:<10} {1 if ruling.byte & b else 0}  {ruling.details.get(b, '')}")
     if ruling.unmeasured():
         lines.append(f"  {'unmeasured':<10}    {' '.join(ruling.unmeasured())}  (the ruling did not depend on them)")
+    return "\n".join(lines)
+
+
+def render_outcome(ruling: Ruling, outcome: Outcome) -> str:
+    """The report's second half: what was actually done."""
+    lines = []
     if outcome.dry_run:
         lines.append(f"  -> dry run: would {_would(ruling)}; nothing written")
+    elif outcome.declined:
+        lines.append(f"  -> declined: would {_would(ruling)}; nothing written")
     elif ruling.act == NONE:
         if ruling.byte & DIRTY:
             lines.append(f"  -> refused ({', '.join(ruling.deciders())}): nothing written, the tree is byte-identical")
@@ -301,6 +318,10 @@ def render(ruling: Ruling, outcome: Outcome) -> str:
     return "\n".join(lines)
 
 
+def render(ruling: Ruling, outcome: Outcome) -> str:
+    return render_ruling(ruling) + "\n" + render_outcome(ruling, outcome)
+
+
 def _would(ruling: Ruling) -> str:
     return {NONE: "write nothing", STAGE: "stage only", COMMIT: "stage and commit, not push",
             PUSH: "stage, commit and push"}[ruling.act]
@@ -319,7 +340,8 @@ def to_json(ruling: Ruling, outcome: Outcome) -> dict:
         "summary": ruling.summary if not ruling.byte & BLIND else None,
         "eyes": ruling.eyes_detail,
         "outcome": {
-            "dry_run": outcome.dry_run, "staged": outcome.staged, "message_file": outcome.message_file,
+            "dry_run": outcome.dry_run, "declined": outcome.declined, "staged": outcome.staged,
+            "message_file": outcome.message_file,
             "commit": outcome.commit, "pushed": outcome.pushed, "failed": outcome.failed, "error": outcome.error,
         },
         "exit_code": exit_code(ruling, outcome),

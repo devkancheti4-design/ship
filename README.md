@@ -1,67 +1,103 @@
 # ship
 
-**One prompt, one safely travelled commit.** A zero-config, fully local CLI:
-it stages your working-tree change, writes the summary, commits, and pushes,
-but only as far as a machine-authored kernel says the change may travel, and
-claiming only what a second machine-authored kernel says the evidence
-supports. No model is needed. The default eyes are a law and a set of
-measurements: 0 tokens, the same message for the same change every time,
-every word traceable. A local Ollama model remains available as an option.
-Nothing leaves your machine but the push to your own remote.
+<p align="center">
+  <img src="docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
+</p>
+
+**One word, one safely pushed commit.** Type `ship` and your change is
+staged, summarised, committed and pushed, or refused with the reason. No
+config, no model, no API key, nothing leaves your machine but the push. Two
+machine-authored, exhaustively proved kernels decide how far the change may
+travel and what its subject line may claim.
 
 ```bash
-pip install git+https://github.com/devkancheti4-design/ship.git   # zero runtime dependencies: git and the standard library
+pip install git+https://github.com/devkancheti4-design/ship.git
 ```
-
-If `ship` is not found after that (common on Windows when pip's `Scripts`
-folder is not on PATH), `python -m ship` is the same command, or install with
-`pipx install git+https://github.com/devkancheti4-design/ship.git`, which puts it on PATH
-for you.
 
 ```bash
 ship                         # stage, summarise, commit, push, as far as the law allows
 ship "why I did this"        # your words become the subject's phrase, verbatim
-ship https://github.com/you/repo.git   # a plain folder: create the repo, set origin, ship it
+ship -i                      # show the ruling, then ask y/N before anything is written
 ship -n                      # dry run: measure and rule, write nothing
+ship https://github.com/you/repo.git   # a plain folder: create the repo, set origin, ship it
 ship --eyes ollama           # let a local model write the prose instead
 ship selfcheck               # re-derive both laws over all 256 inputs, in Python and in C
 ```
 
-**From a folder to GitHub in one command.** Create an empty repository on
-GitHub, then in the folder:
+If `ship` is not found after installing (common on Windows when pip's
+`Scripts` folder is not on PATH), `python -m ship` is the same command, or
+`pipx install git+https://github.com/devkancheti4-design/ship.git` puts it on
+PATH for you.
 
-```bash
-ship https://github.com/you/repo.git
+## Why this exists
+
+Every AI commit tool I looked at does three things I do not want done to my
+history. It sends the diff to someone else's API, so it needs a key, costs
+tokens, and the diff leaves the machine. It writes a fluent message that
+nobody can audit, so the same diff gets a different message on a different
+day and the message can claim a fix the diff does not contain. And it never
+refuses: it will stage a leaked key, write it a nice subject, and push.
+
+`ship` is built the other way round. Nothing is inferred by anything that
+cannot be audited: eight yes/no measurements become a byte, a 20-instruction
+branchless kernel turns the byte into how far the change may go, and a
+second byte through an 8-instruction kernel decides what the subject may
+claim, with the nouns copied from the diff. Refusal is a first-class outcome,
+not an error. And the two kernels come with exhaustive self-checks over all
+256 inputs that you run yourself, offline, in under a second.
+
+## Safety first
+
+The report prints the ruling **before** the first git write, so you see what
+is about to happen, and `ship -i` stops there and asks:
+
 ```
-
-`ship` creates the repository on a branch named `work` (it never pushes
-`main`), sets `origin`, and runs the pipeline: everything in the folder is
-measured, summarised, committed and pushed, or refused with a reason. From
-then on, `ship` alone is the whole workflow. A repository that already has an
-`origin` is never re-pointed: a different URL is an error, not a change.
-
-A real run, unedited, 2026-09-08:
-
-```
-$ ship
 ship  byte 0x81  DIRTY FORWARD                      act PUSH
   DIRTY      1  2 paths differ from HEAD
   SECRET     0  no credential shape in added lines or staged paths
-  CONFLICT   0  no conflict markers, no merge in progress
-  BULK       0  2 path(s), largest 326 B, no new binaries
-  BLIND      0  SAY law feat 0xE0 NEWDEF GUARD FOCUSED (48 ms, 0 tokens): subject 'feat(billing): add total'
-  RED        0  pytest -q -x: green (0.2s)
-  PROTECTED  0  branch feature
+  ...
   FORWARD    1  origin/feature is an ancestor of HEAD: fast-forward
-  -> staged 2 paths, committed 4e563c9, pushed to origin/feature
+  -> will stage, commit and push. Continue? [y/N]
 ```
 
-```
-feat(billing): add total
+Without `-i`, `ship` acts on the ruling at once. Either way these hold:
 
-- billing.py: +6; defines total; guards price_after_discount
-- tests/test_billing.py: +11; defines test_rejects_bad_rate, test_total
-```
+- **A leaked secret, a conflict marker, or a bulk change writes nothing.**
+  Not the index, not history, not the remote. The tree is byte-identical
+  afterwards and the report names the file and the shape, never the secret.
+- **`main` is never pushed.** Neither is a red test suite, a diverged
+  branch, or a detached HEAD. The commit is made as a local checkpoint and
+  the push is left to you. `ship` never runs `--force`, never rebases, never
+  merges.
+- **No commit under a message the eyes did not write.** If the summary
+  cannot be produced, the change is staged and `.git/SHIP_MSG` explains.
+- **Exactly the measured change is staged.** Files that appear during the
+  test run are not part of the change that was ruled on.
+
+<p align="center">
+  <img src="docs/media/refused.gif" width="960" alt="An AWS key is written into .env; ship refuses with act NONE, reports SECRET at .env line 1, and git status shows the tree untouched.">
+</p>
+
+## Zero tokens, zero keys, 100% private
+
+By default there is no model at all. The summary is written by measurement:
+the SAY law names the kind (`feat`, `fix`, `test`, `docs`, `build`, `style`,
+`revert`, or plain), and the definition names, paths and scope come straight
+from the diff. Zero tokens, the same message for the same change every time,
+0 to 85 ms. If you want fluent prose instead, `--eyes ollama` asks whatever
+Ollama is already running on your machine, still with nothing leaving it.
+The only network `ship` ever touches is your own remote: one `fetch` to
+measure whether the push would fast-forward, and the push itself.
+
+## Ultra-lightweight
+
+| | |
+|---|---|
+| wheel | 38 KB |
+| runtime dependencies | 0 (git and the Python standard library) |
+| source | 1,913 lines including both kernels and their C self-checks |
+| the two kernels | 20 and 8 machine instructions, no branches |
+| a full run | 0.1 to 0.8 s wall on a small repo, test suite included |
 
 ## How it works
 
@@ -271,26 +307,6 @@ that raise are BLIND, not a crash; the same change gets the same message.
 .venv/bin/python -m pytest -q
 ```
 
-## Safety properties
-
-- **A veto writes nothing.** A credential shape, a conflict marker, or a
-  bulk change stops the pipeline before the index. The report names the
-  path and the shape, never the secret itself.
-- **The subject never claims what was not measured.** `fix` needs a guard
-  added to an existing definition; `feat` needs a new definition; both
-  need a focused change. Everything else is described, not diagnosed.
-- **The push is the human's when anything is red, protected, or not a
-  fast-forward.** The commit is a local checkpoint. `ship` never runs
-  `--force`, never rebases, never merges, and never pushes to `main`.
-- **Exactly the measured change is staged.** Files that appear during the
-  check are not part of the change that was ruled on.
-- **A clean tree is "nothing to record".** Never an empty commit, never a
-  push of history `ship` did not author.
-- **Nothing leaves the machine but the push.** One `fetch` to measure
-  FORWARD, one `push` if the act is 3, both to your own remote, with
-  `GIT_TERMINAL_PROMPT=0` so a credential prompt fails closed. With the
-  default eyes there is no model call at all.
-
 ## Configuration (all optional)
 
 | variable | default | meaning |
@@ -298,6 +314,7 @@ that raise are BLIND, not a crash; the same change gets the same message.
 | `SHIP_EYES`          | `law` | `law`: the SAY law and measurement, 0 tokens. `ollama`: a local model writes the prose |
 | `OLLAMA_HOST`        | `http://localhost:11434` | where the model lives, when asked for |
 | `SHIP_MODEL`         | first model Ollama lists | which model, when asked for |
+| `SHIP_CONFIRM`       | unset | `1`: always ask y/N before the first git write, as `-i` does |
 | `SHIP_CHECK`         | auto-detected | the check command; `none` disables |
 | `SHIP_CHECK_TIMEOUT` | 600 | seconds before a check is RED for not answering |
 | `SHIP_FETCH_TIMEOUT` | 60  | seconds before a fetch clears FORWARD |

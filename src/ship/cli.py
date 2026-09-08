@@ -11,12 +11,14 @@ import tempfile
 
 from . import __version__, law, say
 from . import measure as M
-from .pipeline import default_eyes, looks_like_remote, prepare, render, run, to_json
+from .pipeline import (default_eyes, looks_like_remote, prepare, render_outcome, render_ruling, run,
+                       to_json, _would)
 
 USAGE = """\
   ship                    stage, summarise, commit and push the working tree, as far as the law allows
   ship "what I did"       the same, with a hint for the eyes
   ship <remote url>       in a plain folder: create the repository, set origin, and ship it
+  ship -i                 show the ruling, then ask y/N before anything is written
   ship -n                 dry run: measure and rule, write nothing
   ship selfcheck          re-derive the law over all 256 inputs (Python, and C if a compiler exists)
 """
@@ -61,6 +63,8 @@ def main(argv=None) -> int:
     ap.add_argument("--to", metavar="URL", default=None,
                     help="the remote to push to; in a plain folder this also creates the repository")
     ap.add_argument("-n", "--dry-run", action="store_true", help="measure and rule; write nothing")
+    ap.add_argument("-i", "--confirm", action="store_true", default=os.environ.get("SHIP_CONFIRM", "") not in ("", "0"),
+                    help="show the ruling and ask y/N before the first git write (also SHIP_CONFIRM=1)")
     ap.add_argument("--json", action="store_true", help="machine-readable report")
     ap.add_argument("--eyes", choices=("law", "ollama"), default=None,
                     help="who writes the summary: the SAY law (default, 0 tokens) or a local Ollama model")
@@ -79,11 +83,40 @@ def main(argv=None) -> int:
     for note in notes:
         if not args.json:
             print(f"ship  {note}")
+    shown = []
+
+    def show_ruling(ruling):
+        """Print the ruling as soon as it exists, before the first git write."""
+        if not args.json and not shown:
+            print(render_ruling(ruling), flush=True)
+            shown.append(True)
+
+    def ask(ruling) -> bool:
+        show_ruling(ruling)
+        try:
+            answer = input(f"  -> will {_would(ruling)}. Continue? [y/N] ")
+        except EOFError:
+            answer = ""
+        return answer.strip().lower() in ("y", "yes")
+
     try:
         ruling, outcome, code = run(root, eyes=default_eyes(args.eyes), hint=" ".join(args.hint), dry_run=args.dry_run,
-                                    fetch_timeout=args.fetch_timeout, check_timeout=args.check_timeout)
+                                    fetch_timeout=args.fetch_timeout, check_timeout=args.check_timeout,
+                                    confirm=ask if args.confirm else show_ruling_then_go(show_ruling))
     except M.GitError as e:
         print(f"ship: {e}", file=sys.stderr)
         return 1
-    print(json.dumps(to_json(ruling, outcome), indent=2) if args.json else render(ruling, outcome))
+    if args.json:
+        print(json.dumps(to_json(ruling, outcome), indent=2))
+    else:
+        show_ruling(ruling)
+        print(render_outcome(ruling, outcome))
     return code
+
+
+def show_ruling_then_go(show):
+    """Without -i: print the ruling first, then proceed without asking."""
+    def go(ruling) -> bool:
+        show(ruling)
+        return True
+    return go
