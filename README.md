@@ -1,7 +1,7 @@
 # ship
 
 <p align="center">
-  <img src="docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
+  <img src="docs/media/old-vs-new.gif" width="960" alt="The same folder pushed twice, for real: first with five git commands and a commit message typed by hand, then with the single line ship ../new.git, which measures, summarises, commits and pushes it.">
 </p>
 
 **One word, one safely pushed commit.** Type `ship` and your change is
@@ -23,6 +23,10 @@ ship https://github.com/you/repo.git   # a plain folder: create the repo, set or
 ship --eyes ollama           # let a local model write the prose instead
 ship selfcheck               # re-derive both laws over all 256 inputs, in Python and in C
 ```
+
+<p align="center">
+  <img src="docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
+</p>
 
 If `ship` is not found after installing (common on Windows when pip's
 `Scripts` folder is not on PATH), `python -m ship` is the same command, or

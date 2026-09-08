@@ -218,7 +218,8 @@ INIT_BRANCH = "work"                       # never main: ship does not push main
 
 
 def looks_like_remote(arg: str) -> bool:
-    return arg.startswith(("http://", "https://", "git@", "ssh://", "git://", "file://"))
+    """A URL with a scheme, an scp-style git@ address, or a path ending in .git, as git itself reads them."""
+    return arg.startswith(("http://", "https://", "git@", "ssh://", "git://", "file://")) or arg.endswith(".git")
 
 
 def prepare(path: str, remote: Optional[str] = None) -> tuple:

@@ -147,3 +147,15 @@ def test_ruling_prints_before_the_outcome(repo, remote, capsys):
     assert cli.main(["-C", str(repo)]) == 0
     out = capsys.readouterr().out
     assert out.index("act PUSH") < out.index("FORWARD    1") < out.index("-> staged 1 path")
+
+
+def test_a_path_ending_in_dot_git_is_a_remote(tmp_path, capsys):
+    from conftest import sh
+    bare = tmp_path / "remote.git"
+    sh(tmp_path, "init", "-q", "--bare", str(bare))
+    folder = tmp_path / "proj"
+    folder.mkdir()
+    (folder / "a.py").write_text("def a():\n    return 1\n")
+    assert cli.main(["-C", str(folder), "../remote.git"]) == 0
+    assert "pushed to origin/work" in capsys.readouterr().out
+    assert sh(bare, "rev-list", "--count", "work").strip() == "1"
