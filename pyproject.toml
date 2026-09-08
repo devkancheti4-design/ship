@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ship"
+dynamic = ["version"]
+description = "A zero-config, fully local commit CLI: one prompt becomes a staged, summarised, safely pushed git commit. A machine-authored kernel decides how far the change may travel; a local model is only ever the eyes."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Devieswar Kancheti", email = "devkancheti4@gmail.com" }]
+keywords = ["git", "commit", "ollama", "local-llm", "branchless"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+# Dependency-free by design: git, the standard library, and whatever local
+# model server is already running on the machine.
+dependencies = []
+
+[tool.setuptools.dynamic]
+version = {attr = "ship.__version__"}
+
+[tool.setuptools.package-data]
+ship = ["ship.c", "say.c"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build"]
+
+[project.urls]
+Homepage = "https://github.com/devkancheti4-design/ship"
+
+[project.scripts]
+ship = "ship.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
