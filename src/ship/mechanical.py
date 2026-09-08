@@ -220,16 +220,17 @@ def observe(ch: M.Change) -> Facts:
     for p in ch.paths:
         f.defs_added[p], f.defs_removed[p] = [], []
         f.counts[p] = [0, 0]
+    def_paths = {p for p in ch.paths if classes[p] in ("code", "test")}   # docs and manifests define nothing
     for p, _, t in ch.added:
         if p in f.counts:
             f.counts[p][0] += 1
-            n = def_name(t)
+            n = def_name(t) if p in def_paths else None
             if n and n not in f.defs_added[p]:
                 f.defs_added[p].append(n)
     for p, t in ch.removed:
         if p in f.counts:
             f.counts[p][1] += 1
-            n = def_name(t)
+            n = def_name(t) if p in def_paths else None
             if n and n not in f.defs_removed[p]:
                 f.defs_removed[p].append(n)
 

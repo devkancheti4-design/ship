@@ -256,3 +256,9 @@ def test_secret_style_lines_are_not_the_eyes_business(billing):
     (billing / "billing.py").write_text(BILLING_BEFORE + "KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
     _, text, _ = eyes(billing)
     assert text.splitlines()[0] == "update billing.py"
+
+
+def test_docs_never_claim_definitions(repo):
+    (repo / "README.md").write_text("# demo\n\nint main(void) {\n\n| kind | subject |\n|---|---|\n")
+    f, text, _ = eyes(repo)
+    assert f.defs_added["README.md"] == [] and "defines" not in text
