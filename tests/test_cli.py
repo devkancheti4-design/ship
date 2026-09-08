@@ -159,3 +159,14 @@ def test_a_path_ending_in_dot_git_is_a_remote(tmp_path, capsys):
     assert cli.main(["-C", str(folder), "../remote.git"]) == 0
     assert "pushed to origin/work" in capsys.readouterr().out
     assert sh(bare, "rev-list", "--count", "work").strip() == "1"
+
+
+def test_never_creates_a_repo_in_a_folder_of_repos(tmp_path, capsys):
+    from conftest import sh
+    ws = tmp_path / "workspace"
+    (ws / "proj-a").mkdir(parents=True)
+    sh(ws / "proj-a", "init", "-q")
+    (ws / "notes.txt").write_text("hi\n")
+    assert cli.main(["-C", str(ws), "--to", "https://example.invalid/x.git"]) == 1
+    err = capsys.readouterr().err
+    assert "already holds git repositories (proj-a)" in err and not (ws / ".git").exists()

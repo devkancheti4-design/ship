@@ -280,3 +280,14 @@ def test_detects_make_test_target(repo, monkeypatch):
     monkeypatch.delenv("SHIP_CHECK")
     (repo / "Makefile").write_text("build:\n\techo b\n\ntest:\n\techo t\n")
     assert M.detect_check(str(repo)) == (["make", "test"], "make test")
+
+
+def test_nested_repository_is_bulk_not_unscannable(repo):
+    inner = repo / "lib"
+    inner.mkdir()
+    sh(inner, "init", "-q")
+    (inner / "x.py").write_text("x = 1\n")
+    ch, dirty, secret, conflict, bulk = scan(repo)
+    assert dirty[0] and ch.nested == ["lib/"] and ch.paths == []
+    assert not secret[0], secret
+    assert bulk[0] and "git repositories inside this folder: lib/" in bulk[1]

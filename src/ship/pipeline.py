@@ -237,6 +237,11 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
     if root is None:
         if not remote:
             raise M.GitError(f"{path} is not a git repository. To create one and push it: ship <remote url>")
+        inner = sorted(d for d in os.listdir(path)
+                       if os.path.isdir(os.path.join(path, d, ".git")) or d.endswith(".git"))
+        if inner:
+            raise M.GitError(f"{os.path.basename(path)}/ already holds git repositories ({', '.join(inner[:5])}"
+                             f"{', ...' if len(inner) > 5 else ''}); run ship inside the one you want to push")
         M.git(path, "init", "-q", "-b", INIT_BRANCH)
         root = path
         notes.append(f"created a repository in {os.path.basename(path)}/ on branch {INIT_BRANCH}")

@@ -99,6 +99,7 @@ class Change:
     binary_untracked: list = field(default_factory=list)
     unreadable: list = field(default_factory=list)       # the scan could not open these
     partial: list = field(default_factory=list)          # only the first SCAN_BYTES were scanned
+    nested: list = field(default_factory=list)           # git repositories inside the tree: never committed
 
     def render(self, budget: int = 6000) -> str:
         """What the eyes are shown: the stat, then as much diff as fits."""
@@ -130,6 +131,9 @@ def collect(repo: str) -> Change:
         xy, path = entry[:2], entry[3:]
         if xy[0] in "RC":                  # rename/copy: the original path follows
             i += 1
+        if xy == "??" and path.endswith("/"):            # git lists a nested repository as one directory
+            ch.nested.append(path)
+            continue
         ch.paths.append(path)
         ch.status[path] = xy
         if xy == "??":
@@ -197,7 +201,7 @@ def collect(repo: str) -> Change:
 
 # ------------------------------------------------------------ measurements
 def measure_dirty(ch: Change) -> tuple[bool, str]:
-    n = len(ch.paths)
+    n = len(ch.paths) + len(ch.nested)
     return n > 0, (f"{n} path{'s' if n != 1 else ''} differ from HEAD" if n else "working tree matches HEAD")
 
 
@@ -257,6 +261,10 @@ def measure_bulk(ch: Change) -> tuple[bool, str]:
             reasons.append(f"{p} is {s / 1e6:.1f} MB (limit {MAX_BYTES // (1024 * 1024)} MB)")
     if ch.binary_untracked:
         reasons.append("untracked binary: " + ", ".join(ch.binary_untracked[:3]))
+    if ch.nested:
+        reasons.append("git repositories inside this folder: " + ", ".join(ch.nested[:4])
+                       + (f" +{len(ch.nested) - 4} more" if len(ch.nested) > 4 else "")
+                       + " (run ship inside one of them)")
     if reasons:
         return True, "; ".join(reasons[:4])
     largest = max(ch.sizes.values(), default=0)
