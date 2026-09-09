@@ -56,6 +56,13 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["selfcheck"]:
         return selfcheck_main()
+    if shutil.which("git") is None:
+        print("ship: git is not installed, and everything ship does is git.\n"
+              "  macOS:    xcode-select --install   (or: brew install git)\n"
+              "  Windows:  winget install Git.Git   (or https://git-scm.com/download/win)\n"
+              "  Linux:    sudo apt install git     (or your distribution's package manager)\n"
+              "Then open a new terminal and run ship again.", file=sys.stderr)
+        return 1
     ap = argparse.ArgumentParser(prog="ship", description=__doc__, usage=USAGE,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("hint", nargs="*", help="optional words describing the change, shown to the eyes")

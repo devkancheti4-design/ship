@@ -170,3 +170,10 @@ def test_never_creates_a_repo_in_a_folder_of_repos(tmp_path, capsys):
     assert cli.main(["-C", str(ws), "--to", "https://example.invalid/x.git"]) == 1
     err = capsys.readouterr().err
     assert "already holds git repositories (proj-a)" in err and not (ws / ".git").exists()
+
+
+def test_missing_git_is_explained_not_a_traceback(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda name: None)
+    assert cli.main(["-C", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert "git is not installed" in err and "winget install Git.Git" in err and "xcode-select" in err
