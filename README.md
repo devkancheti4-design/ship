@@ -11,8 +11,13 @@ machine-authored, exhaustively proved kernels decide how far the change may
 travel and what its subject line may claim.
 
 ```bash
-pip install git+https://github.com/devkancheti4-design/ship.git
+python -m pip install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip
 ```
+
+That form needs no git to install (git is still needed to run) and lands in the
+same Python you invoke. If the `ship` command is then "not recognized" (Windows
+without pip's `Scripts` folder on PATH), run it as `python -m ship` instead of
+`ship`; every command below works both ways.
 
 ```bash
 ship                         # stage, summarise, commit, push, as far as the law allows
@@ -28,10 +33,9 @@ ship selfcheck               # re-derive both laws over all 256 inputs, in Pytho
   <img src="docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
 </p>
 
-If `ship` is not found after installing (common on Windows when pip's
-`Scripts` folder is not on PATH), `python -m ship` is the same command, or
-`pipx install git+https://github.com/devkancheti4-design/ship.git` puts it on
-PATH for you.
+To have the bare word `ship` on PATH on Windows, either install with
+`pipx install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip`
+or add the folder that `python -m pip show -f ship` lists for `ship.exe` to PATH.
 
 ## Why this exists
 
