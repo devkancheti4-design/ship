@@ -291,3 +291,11 @@ def test_nested_repository_is_bulk_not_unscannable(repo):
     assert dirty[0] and ch.nested == ["lib/"] and ch.paths == []
     assert not secret[0], secret
     assert bulk[0] and "git repositories inside this folder: lib/" in bulk[1]
+
+
+def test_empty_new_repository_says_so(tmp_path):
+    r = tmp_path / "empty"
+    r.mkdir()
+    sh(r, "init", "-q")
+    ch, dirty, *_ = scan(r)
+    assert dirty == (False, "the folder has no files yet: add one, then run ship again")

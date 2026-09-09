@@ -202,7 +202,11 @@ def collect(repo: str) -> Change:
 # ------------------------------------------------------------ measurements
 def measure_dirty(ch: Change) -> tuple[bool, str]:
     n = len(ch.paths) + len(ch.nested)
-    return n > 0, (f"{n} path{'s' if n != 1 else ''} differ from HEAD" if n else "working tree matches HEAD")
+    if n:
+        return True, f"{n} path{'s' if n != 1 else ''} differ from HEAD"
+    if ch.base == EMPTY_TREE:
+        return False, "the folder has no files yet: add one, then run ship again"
+    return False, "working tree matches HEAD"
 
 
 def _secret_path(path: str) -> bool:
