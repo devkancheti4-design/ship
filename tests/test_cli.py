@@ -173,7 +173,7 @@ def test_never_creates_a_repo_in_a_folder_of_repos(tmp_path, capsys):
 
 
 def test_missing_git_is_explained_not_a_traceback(tmp_path, capsys, monkeypatch):
-    monkeypatch.setattr("shutil.which", lambda name: None)
+    monkeypatch.setattr(cli, "git_works", lambda: False)
     assert cli.main(["-C", str(tmp_path)]) == 1
     err = capsys.readouterr().err
     assert "git is not installed" in err and "winget install Git.Git" in err and "xcode-select" in err
@@ -203,3 +203,10 @@ def test_never_creates_a_repo_in_a_personal_folder(tmp_path, capsys, monkeypatch
     assert not (home / "Documents" / ".git").exists()
     assert cli.main(["-C", str(home), "--to", "https://example.invalid/x.git"]) == 1
     assert "is your home folder" in capsys.readouterr().err
+
+
+def test_macos_placeholder_git_counts_as_missing(monkeypatch):
+    import subprocess
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/git")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, "", "xcode-select: note: No developer tools were found"))
+    assert cli.git_works() is False

@@ -24,6 +24,16 @@ USAGE = """\
 """
 
 
+def git_works() -> bool:
+    """macOS ships a placeholder git that only offers to install the developer tools; `git --version` exposes it."""
+    if shutil.which("git") is None:
+        return False
+    try:
+        return subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
 def selfcheck_main() -> int:
     violations = 0
     cc = shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
@@ -56,7 +66,7 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["selfcheck"]:
         return selfcheck_main()
-    if shutil.which("git") is None:
+    if not git_works():
         print("ship: git is not installed, and everything ship does is git.\n"
               "  macOS:    xcode-select --install   (or: brew install git)\n"
               "  Windows:  winget install Git.Git   (or https://git-scm.com/download/win)\n"
