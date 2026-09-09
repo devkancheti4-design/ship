@@ -177,3 +177,15 @@ def test_missing_git_is_explained_not_a_traceback(tmp_path, capsys, monkeypatch)
     assert cli.main(["-C", str(tmp_path)]) == 1
     err = capsys.readouterr().err
     assert "git is not installed" in err and "winget install Git.Git" in err and "xcode-select" in err
+
+
+def test_missing_git_identity_is_explained_before_anything_is_written(repo, remote, capsys, monkeypatch):
+    from conftest import sh
+    cfg = repo.parent / "nobody"
+    cfg.write_text("[commit]\n\tgpgsign = false\n")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(cfg))
+    (repo / "hello.txt").write_text("hi\n")
+    assert cli.main(["-C", str(repo)]) == 1
+    err = capsys.readouterr().err
+    assert "git does not know who you are yet" in err and "git config --global user.email" in err
+    assert sh(repo, "diff", "--cached", "--name-only").strip() == ""

@@ -247,6 +247,13 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
         notes.append(f"created a repository in {os.path.basename(path)}/ on branch {INIT_BRANCH}")
     elif remote and not os.path.isdir(os.path.join(path, ".git")) and root != path:
         raise M.GitError(f"{path} is inside the repository at {root}; run ship there")
+    name = M.git(root, "config", "--get", "user.name", check=False).stdout.strip()
+    email = M.git(root, "config", "--get", "user.email", check=False).stdout.strip()
+    if not name or not email:
+        raise M.GitError("git does not know who you are yet. Once, on this machine:\n"
+                         "  git config --global user.name \"Your Name\"\n"
+                         "  git config --global user.email \"you@example.com\"   (the email of your GitHub account)\n"
+                         "Then run ship again.")
     if remote:
         current = M.git(root, "remote", "get-url", "origin", check=False).stdout.strip()
         if not current:
