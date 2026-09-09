@@ -189,3 +189,17 @@ def test_missing_git_identity_is_explained_before_anything_is_written(repo, remo
     err = capsys.readouterr().err
     assert "git does not know who you are yet" in err and "git config --global user.email" in err
     assert sh(repo, "diff", "--cached", "--name-only").strip() == ""
+
+
+def test_never_creates_a_repo_in_a_personal_folder(tmp_path, capsys, monkeypatch):
+    home = tmp_path / "home"
+    (home / "Documents").mkdir(parents=True)
+    (home / "Documents" / "notes.txt").write_text("hi\n")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    assert cli.main(["-C", str(home / "Documents"), "--to", "https://example.invalid/x.git"]) == 1
+    err = capsys.readouterr().err
+    assert "Documents/ is your Documents folder, not a project" in err
+    assert not (home / "Documents" / ".git").exists()
+    assert cli.main(["-C", str(home), "--to", "https://example.invalid/x.git"]) == 1
+    assert "is your home folder" in capsys.readouterr().err

@@ -222,6 +222,22 @@ def looks_like_remote(arg: str) -> bool:
     return arg.startswith(("http://", "https://", "git@", "ssh://", "git://", "file://")) or arg.endswith(".git")
 
 
+PERSONAL = ("Desktop", "Documents", "Downloads", "Pictures", "Music", "Videos", "OneDrive")
+
+
+def _personal_folder(path: str) -> Optional[str]:
+    """'home', 'Documents', ... when `path` is the user's home or one of its personal folders."""
+    real = os.path.normcase(os.path.realpath(path))
+    home = os.path.normcase(os.path.realpath(os.path.expanduser("~")))
+    if real == home:
+        return "home"
+    for base in (home, os.path.join(home, os.path.normcase("OneDrive"))):
+        for name in PERSONAL:
+            if real == os.path.normcase(os.path.join(base, name)):
+                return name
+    return None
+
+
 def prepare(path: str, remote: Optional[str] = None) -> tuple:
     """Make `path` a repository that can ship: create it if needed, set origin if given.
 
@@ -237,6 +253,10 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
     if root is None:
         if not remote:
             raise M.GitError(f"{path} is not a git repository. To create one and push it: ship <remote url>")
+        personal = _personal_folder(path)
+        if personal:
+            raise M.GitError(f"{os.path.basename(path) or path}/ is your {personal} folder, not a project. "
+                             f"Make a folder for the project, put the files in it, and run ship inside it.")
         inner = sorted(d for d in os.listdir(path)
                        if os.path.isdir(os.path.join(path, d, ".git")) or d.endswith(".git"))
         if inner:
