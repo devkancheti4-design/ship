@@ -1,8 +1,8 @@
 #!/bin/bash
 # The test matrix for ship on devkancheti4-design/test-case-: every run is real, origin is a scratch bare remote.
-export PATH=/Users/kanchetidevieswar/neo/ship/.venv/bin:$PATH
+export PATH=$SHIP_BIN:$PATH
 export GIT_TERMINAL_PROMPT=0
-T=/private/tmp/claude-501/-Users-kanchetidevieswar-neo/1e1664fd-1962-4d88-8a91-f786fbfbe0b6/scratchpad/testcase
+T=$SHIP_DEMO_DIR/testcase
 cd $T/clone
 TIMEFORMAT='   [wall %Rs]'
 run() { echo; echo "### $1"; shift; echo "\$ $*"; time "$@"; echo "   [exit $?]"; }

@@ -1,0 +1,96 @@
+# Publishes to PyPI via Trusted Publishing (OIDC) — no token stored anywhere.
+# One-time setup on PyPI (must be done in the browser by the project owner):
+#   pypi.org -> Your account -> Publishing -> Add a new pending publisher:
+#     project:      ship-cli
+#     owner:        devkancheti4-design
+#     repo:         ship
+#     workflow:     publish.yml
+#     environment:  pypi
+# Then publishing a GitHub release (or pushing a v* tag) uploads that version;
+# whichever comes second is a no-op, not a failure.
+name: publish
+on:
+  release:
+    types: [published]
+  push:
+    tags: ["v*"]
+
+# Least privilege by default; only the publish job is granted the OIDC token.
+permissions:
+  contents: read
+
+# A tag push and the release made from it must not publish concurrently.
+concurrency:
+  group: publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # Gate: nothing reaches PyPI unless the suite and both kernel self-checks are
+  # green on the tagged commit.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest tests/ -q
+      - run: ship selfcheck
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      # twine check does NOT catch a missing license file, and a tag that does not
+      # match the package version would publish the wrong thing under skip-existing.
+      - name: the artifact must carry the version, the name and the licence
+        run: |
+          python - <<'EOF'
+          import glob, os, sys, zipfile
+          whl = glob.glob("dist/*.whl")[0]
+          z = zipfile.ZipFile(whl)
+          meta = next(n for n in z.namelist() if n.endswith(".dist-info/METADATA"))
+          m = z.read(meta).decode()
+          names = z.namelist()
+          def need(cond, msg):
+              if not cond:
+                  sys.exit(f"publish gate: {msg}")
+          need("Name: ship-cli" in m, "wheel is not named ship-cli")
+          need("License-Expression: AGPL-3.0-or-later" in m, "licence expression missing")
+          need(sum(n.endswith(("licenses/LICENSE", "licenses/COMMERCIAL.md")) for n in names) == 2,
+               "LICENSE and COMMERCIAL.md are not inside the wheel")
+          tag = os.environ.get("GITHUB_REF_NAME", "")
+          if tag.startswith("v"):
+              need(f"Version: {tag[1:]}" in m,
+                   f"tag {tag} does not match the package version in {os.path.basename(whl)}")
+          print("publish gate: name, version, licence and licence files all present")
+          EOF
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A tag push and the GitHub Release made from it both trigger this
+          # workflow; the second run must not fail on PyPI's file-name-reuse rule.
+          skip-existing: true

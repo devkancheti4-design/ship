@@ -1,0 +1,12 @@
+include LICENSE
+include COMMERCIAL.md
+include SHIP_LAW_PROMPT.md
+include SAY_LAW_PROMPT.md
+include src/ship/ship.c
+include src/ship/say.c
+recursive-include tests *.py
+# docs/ is repository material: recordings, tape scripts, a reproduction log.
+# The README links to all of it by URL, so none of it belongs in an sdist.
+prune docs
+global-exclude *.pyc
+global-exclude .DS_Store

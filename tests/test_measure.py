@@ -7,6 +7,11 @@ from conftest import sh
 from ship import measure as M
 
 
+# Built at runtime so this file is not itself secret-shaped: ship scans added lines, and a
+# literal key here would make the suite uncommittable by the very tool it tests.
+LIVE_AWS_KEY = "AKIA" + "5TQ7WJ2H4RNZ6BXC"
+
+
 def scan(repo):
     ch = M.collect(str(repo))
     return ch, M.measure_dirty(ch), M.measure_secret(ch), M.measure_conflict(str(repo), ch), M.measure_bulk(ch)
@@ -51,7 +56,7 @@ def test_unborn_repository(tmp_path):
 
 # ---- SECRET
 def test_aws_key_in_added_line(repo):
-    (repo / "config.py").write_text("KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
+    (repo / "config.py").write_text(f"KEY = '{LIVE_AWS_KEY}'\n")
     _, _, secret, *_ = scan(repo)
     assert secret[0] and "config.py:1: AWS access key" in secret[1]
 
@@ -92,7 +97,7 @@ def test_deleting_a_secret_file_is_not_a_secret(repo):
 
 
 def test_secret_only_in_removed_lines_is_not_flagged(repo):
-    (repo / "README.md").write_text("# demo\ntoken = 'AKIAIOSFODNN7EXAMPLE'\n")
+    (repo / "README.md").write_text(f"# demo\ntoken = '{LIVE_AWS_KEY}'\n")
     sh(repo, "add", "README.md")
     sh(repo, "commit", "-q", "-m", "leak")
     (repo / "README.md").write_text("# demo\n")
@@ -299,3 +304,64 @@ def test_empty_new_repository_says_so(tmp_path):
     sh(r, "init", "-q")
     ch, dirty, *_ = scan(r)
     assert dirty == (False, "the folder has no files yet: add one, then run ship again")
+
+
+# ---- launchability (the Windows .cmd shim defect)
+def test_launchable_resolves_to_an_absolute_path(monkeypatch):
+    monkeypatch.setattr(M.shutil, "which", lambda name: "/usr/local/bin/npm")
+    monkeypatch.setattr(M.os, "name", "posix")
+    assert M.launchable(["npm", "test"]) == ["/usr/local/bin/npm", "test"]
+
+
+def test_launchable_routes_a_windows_cmd_shim_through_the_interpreter(monkeypatch):
+    monkeypatch.setattr(M.shutil, "which", lambda name: r"C:\Program Files\nodejs\npm.cmd")
+    monkeypatch.setattr(M.os, "name", "nt")
+    monkeypatch.setenv("COMSPEC", r"C:\Windows\system32\cmd.exe")
+    assert M.launchable(["npm", "test"]) == [
+        r"C:\Windows\system32\cmd.exe", "/c", r"C:\Program Files\nodejs\npm.cmd", "test"]
+
+
+def test_launchable_leaves_an_unresolvable_command_alone(monkeypatch):
+    monkeypatch.setattr(M.shutil, "which", lambda name: None)
+    assert M.launchable(["nope-xyz", "test"]) == ["nope-xyz", "test"]
+
+
+def test_an_unresolvable_check_is_red_with_its_reason(repo, monkeypatch):
+    monkeypatch.setenv("SHIP_CHECK", "")
+    monkeypatch.setattr(M, "detect_check", lambda r: (["ship-no-such-tool-xyz", "test"], "npm test"))
+    red = M.measure_red(str(repo))
+    assert red[0] and "would not launch" in red[1]
+
+
+def test_git_output_is_decoded_as_utf8_whatever_the_locale(repo, monkeypatch):
+    """A non-ASCII path must not read as unscannable, which the law would veto as SECRET."""
+    monkeypatch.setenv("LC_ALL", "C")
+    monkeypatch.setenv("LANG", "C")
+    (repo / "caf\u00e9.py").write_text("x = 1\n", encoding="utf-8")
+    ch = M.collect(str(repo))
+    assert ch.paths == ["caf\u00e9.py"] and ch.unreadable == []
+    assert not M.measure_secret(ch)[0]
+
+
+def test_the_venv_search_stops_at_the_first_hit(repo, monkeypatch):
+    """A .venv must win over a venv, not be silently overridden by it."""
+    monkeypatch.delenv("SHIP_CHECK")
+    (repo / "tests").mkdir(exist_ok=True)
+    (repo / "tests" / "test_x.py").write_text("def test_x(): pass\n")
+    for name in ("venv", ".venv"):
+        (repo / name / "bin").mkdir(parents=True)
+        (repo / name / "bin" / "python").write_text("")
+    cmd, _ = M.detect_check(str(repo))
+    assert cmd[0] == str(repo / ".venv" / "bin" / "python")
+
+
+def test_aws_documented_example_key_is_not_a_secret(repo):
+    """AWS reserves the EXAMPLE suffix for documentation, so fixtures may carry it."""
+    (repo / "docs.py").write_text("EXAMPLE_KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
+    assert not scan(repo)[2][0]
+
+
+def test_a_real_shaped_aws_key_is_still_a_secret(repo):
+    (repo / "config.py").write_text(f"KEY = '{LIVE_AWS_KEY}'\n")
+    secret = scan(repo)[2]
+    assert secret[0] and "AWS access key" in secret[1]

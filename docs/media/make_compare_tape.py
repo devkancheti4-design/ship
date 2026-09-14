@@ -2,7 +2,7 @@
 Both halves run for real against scratch bare remotes created in DEMO_DIR."""
 import sys
 demo = sys.argv[1]
-shipbin = "/Users/kanchetidevieswar/neo/ship/.venv/bin"
+shipbin = "$SHIP_BIN"
 setup = (f"setopt interactive_comments && export PATH={shipbin}:$PATH && rm -rf {demo} && mkdir -p {demo} && cd {demo} "
          "&& git init -q --bare old.git && git init -q --bare new.git && mkdir app-old app-new "
          "&& printf 'def greet(name):\\n    return f\"hello {name}\"\\n' > app-old/app.py && cp app-old/app.py app-new/app.py "

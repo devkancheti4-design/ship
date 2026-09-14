@@ -13,6 +13,7 @@ import fnmatch
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -29,7 +30,10 @@ PROTECTED_PREFIXES = ("release/",)
 
 SECRET_SHAPES = (
     ("private key header", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
-    ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    # AWS publishes AKIA...EXAMPLE keys precisely so they can appear in documentation and
+    # test fixtures, and reserves the suffix; a live key never ends in EXAMPLE.  Only this
+    # documented placeholder is exempt — every other AKIA key is a secret.
+    ("AWS access key", re.compile(r"\bAKIA(?![0-9A-Z]*EXAMPLE\b)[0-9A-Z]{16}\b")),
     ("GitHub token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b")),
     ("Slack token", re.compile(r"\bxox[baprs]-[0-9A-Za-z-]{10,}\b")),
     ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
@@ -58,7 +62,7 @@ def git(repo: str, *args: str, timeout: int = 60, check: bool = True,
     e["GIT_TERMINAL_PROMPT"] = "0"          # never hang on a credential prompt: fail closed instead
     e.update(env or {})
     p = subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True,
-                       errors="replace", timeout=timeout, env=e)
+                       encoding="utf-8", errors="replace", timeout=timeout, env=e)
     if check and p.returncode != 0:
         raise GitError(f"git {' '.join(args)}: {(p.stderr or p.stdout).strip()}")
     return p
@@ -363,11 +367,9 @@ def detect_check(repo: str) -> Optional[tuple]:
                 pytest_signals += (True,)
     if any(pytest_signals):
         py = sys.executable
-        for venv in (".venv", "venv"):
-            for cand in (os.path.join(repo, venv, "bin", "python"), os.path.join(repo, venv, "Scripts", "python.exe")):
-                if os.path.exists(cand):
-                    py = cand
-                    break
+        candidates = (os.path.join(repo, v, *tail) for v in (".venv", "venv")
+                      for tail in (("bin", "python"), ("Scripts", "python.exe")))
+        py = next((c for c in candidates if os.path.exists(c)), py)
         return [py, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"], "pytest -q -x"
 
     if exists("package.json"):
@@ -392,6 +394,22 @@ def detect_check(repo: str) -> Optional[tuple]:
     return None
 
 
+def launchable(argv: list) -> list:
+    """Resolve argv[0] so it can be launched without a shell on every platform.
+
+    On Windows npm, yarn and pnpm exist only as .cmd shims: CreateProcess appends ".exe" and
+    ignores PATHEXT, and cannot run a batch file directly.  shutil.which does apply PATHEXT, so
+    resolve with it and route a .cmd or .bat through the command interpreter.  An unresolvable
+    command is returned untouched, so the launch fails and is reported as RED with its reason.
+    """
+    exe = shutil.which(argv[0])
+    if exe is None:
+        return list(argv)
+    if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
+        return [os.environ.get("COMSPEC", "cmd.exe"), "/c", exe, *argv[1:]]
+    return [exe, *argv[1:]]
+
+
 def measure_red(repo: str, timeout: int = 600) -> tuple[bool, str]:
     check = detect_check(repo)
     if check is None:
@@ -400,8 +418,9 @@ def measure_red(repo: str, timeout: int = 600) -> tuple[bool, str]:
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     t0 = time.monotonic()
     try:
-        p = subprocess.run(cmd, cwd=repo, shell=isinstance(cmd, str), capture_output=True,
-                           text=True, errors="replace", timeout=timeout, env=env)
+        p = subprocess.run(cmd if isinstance(cmd, str) else launchable(cmd), cwd=repo,
+                           shell=isinstance(cmd, str), capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=timeout, env=env)
     except subprocess.TimeoutExpired:
         return True, f"{label}: no verdict within {timeout}s"
     except OSError as e:

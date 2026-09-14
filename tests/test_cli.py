@@ -210,3 +210,32 @@ def test_macos_placeholder_git_counts_as_missing(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/git")
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, "", "xcode-select: note: No developer tools were found"))
     assert cli.git_works() is False
+
+
+def test_help_and_version_work_without_git(capsys, monkeypatch):
+    """git is needed to do anything, but not to ask what this is."""
+    monkeypatch.setattr(cli, "git_works", lambda: False)
+    for flag in ("--help", "--version"):
+        with pytest.raises(SystemExit) as e:
+            cli.main([flag])
+        assert e.value.code == 0
+        assert capsys.readouterr().out.strip()
+
+
+def test_a_run_that_creates_a_repo_and_writes_nothing_says_so(tmp_path, capsys):
+    from conftest import sh
+    bare = tmp_path / "remote.git"
+    sh(tmp_path, "init", "-q", "--bare", str(bare))
+    folder = tmp_path / "proj"
+    folder.mkdir()
+    (folder / ".env").write_text("AWS=AKIAIOSFODNN7EXAMPLE\n")
+    assert cli.main(["-C", str(folder), "--to", str(bare)]) == 2
+    out = capsys.readouterr().out
+    assert "refused (SECRET)" in out
+    assert "created this repository during this run" in out and ".git" in out
+
+
+def test_an_existing_repo_never_gets_that_notice(repo, remote, capsys):
+    (repo / "hello.txt").write_text("hi\n")
+    assert cli.main(["-C", str(repo)]) == 0
+    assert "created this repository during this run" not in capsys.readouterr().out

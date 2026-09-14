@@ -12,7 +12,7 @@ Set TypingSpeed 45ms
 Set CursorBlink false
 
 Hide
-Type "setopt interactive_comments && mkdir -p /Users/kanchetidevieswar/neo/demo && cd /Users/kanchetidevieswar/neo/demo && rm -rf test-case- && export PATH=/Users/kanchetidevieswar/neo/ship/.venv/bin:$PATH && clear" Enter
+Type "setopt interactive_comments && mkdir -p $SHIP_DEMO_DIR && cd $SHIP_DEMO_DIR && rm -rf test-case- && export PATH=$SHIP_BIN:$PATH && clear" Enter
 Sleep 1s
 Show
 

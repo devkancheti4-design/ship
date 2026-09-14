@@ -66,13 +66,6 @@ def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["selfcheck"]:
         return selfcheck_main()
-    if not git_works():
-        print("ship: git is not installed, and everything ship does is git.\n"
-              "  macOS:    xcode-select --install   (or: brew install git)\n"
-              "  Windows:  winget install Git.Git   (or https://git-scm.com/download/win)\n"
-              "  Linux:    sudo apt install git     (or your distribution's package manager)\n"
-              "Then open a new terminal and run ship again.", file=sys.stderr)
-        return 1
     ap = argparse.ArgumentParser(prog="ship", description=__doc__, usage=USAGE,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("hint", nargs="*", help="optional words describing the change, shown to the eyes")
@@ -88,12 +81,20 @@ def main(argv=None) -> int:
     ap.add_argument("--fetch-timeout", type=int, default=int(os.environ.get("SHIP_FETCH_TIMEOUT", 60)))
     ap.add_argument("--check-timeout", type=int, default=int(os.environ.get("SHIP_CHECK_TIMEOUT", 600)))
     ap.add_argument("--version", action="version", version=f"ship {__version__}")
-    args = ap.parse_args(argv)
+    args = ap.parse_args(argv)          # --help and --version exit here, before git is needed
+
+    if not git_works():
+        print("ship: git is not installed, and everything ship does is git.\n"
+              "  macOS:    xcode-select --install   (or: brew install git)\n"
+              "  Windows:  winget install Git.Git   (or https://git-scm.com/download/win)\n"
+              "  Linux:    sudo apt install git     (or your distribution's package manager)\n"
+              "Then open a new terminal and run ship again.", file=sys.stderr)
+        return 1
 
     if args.hint and args.to is None and looks_like_remote(args.hint[0]):
         args.to = args.hint.pop(0)
     try:
-        root, notes = prepare(args.repo, args.to)
+        root, notes, created = prepare(args.repo, args.to)
     except (M.GitError, OSError) as e:
         print(f"ship: {e}", file=sys.stderr)
         return 1
@@ -112,7 +113,7 @@ def main(argv=None) -> int:
         show_ruling(ruling)
         try:
             answer = input(f"  -> will {_would(ruling)}. Continue? [y/N] ")
-        except EOFError:
+        except (EOFError, OSError):      # no stdin at all: decline rather than crash
             answer = ""
         return answer.strip().lower() in ("y", "yes")
 
@@ -128,6 +129,9 @@ def main(argv=None) -> int:
     else:
         show_ruling(ruling)
         print(render_outcome(ruling, outcome))
+        if created and outcome.act == 0:
+            print(f"  -> ship created this repository during this run and wrote no commit into it.\n"
+                  f"     If you did not want it: delete {os.path.join(root, '.git')}")
     return code
 
 

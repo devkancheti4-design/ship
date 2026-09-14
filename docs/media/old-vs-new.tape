@@ -12,7 +12,7 @@ Set TypingSpeed 40ms
 Set CursorBlink false
 
 Hide
-Type `setopt interactive_comments && export PATH=/Users/kanchetidevieswar/neo/ship/.venv/bin:$PATH && rm -rf /Users/kanchetidevieswar/neo/demo/cmp && mkdir -p /Users/kanchetidevieswar/neo/demo/cmp && cd /Users/kanchetidevieswar/neo/demo/cmp && git init -q --bare old.git && git init -q --bare new.git && mkdir app-old app-new && printf 'def greet(name):\n    return f"hello {name}"\n' > app-old/app.py && cp app-old/app.py app-new/app.py && cd app-old && clear` Enter
+Type `setopt interactive_comments && export PATH=$SHIP_BIN:$PATH && rm -rf $SHIP_DEMO_DIR/cmp && mkdir -p $SHIP_DEMO_DIR/cmp && cd $SHIP_DEMO_DIR/cmp && git init -q --bare old.git && git init -q --bare new.git && mkdir app-old app-new && printf 'def greet(name):\n    return f"hello {name}"\n' > app-old/app.py && cp app-old/app.py app-new/app.py && cd app-old && clear` Enter
 Sleep 1s
 Show
 

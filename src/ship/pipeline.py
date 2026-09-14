@@ -245,7 +245,7 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
     law rules on.  Raises GitError with a plain sentence when it cannot proceed.
     """
     path = os.path.abspath(path)
-    notes = []
+    notes, created = [], False
     try:
         root = M.toplevel(path)
     except M.GitError:
@@ -262,7 +262,10 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
         if inner:
             raise M.GitError(f"{os.path.basename(path)}/ already holds git repositories ({', '.join(inner[:5])}"
                              f"{', ...' if len(inner) > 5 else ''}); run ship inside the one you want to push")
-        M.git(path, "init", "-q", "-b", INIT_BRANCH)
+        if M.git(path, "init", "-q", "-b", INIT_BRANCH, check=False).returncode != 0:
+            M.git(path, "init", "-q")                       # git < 2.28 has no init -b
+            M.git(path, "checkout", "-q", "-b", INIT_BRANCH)
+        created = True
         root = path
         notes.append(f"created a repository in {os.path.basename(path)}/ on branch {INIT_BRANCH}")
     elif remote and not os.path.isdir(os.path.join(path, ".git")) and root != path:
@@ -281,7 +284,7 @@ def prepare(path: str, remote: Optional[str] = None) -> tuple:
             notes.append(f"origin -> {remote}")
         elif current != remote:
             raise M.GitError(f"origin is already {current}; ship pushes there. To change it: git remote set-url origin {remote}")
-    return root, notes
+    return root, notes, created
 
 
 def default_eyes(mode: Optional[str] = None) -> Eyes:

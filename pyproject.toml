@@ -1,23 +1,38 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ship"
+name = "ship-cli"
 dynamic = ["version"]
-description = "A zero-config, fully local commit CLI: one prompt becomes a staged, summarised, safely pushed git commit. A machine-authored kernel decides how far the change may travel; a local model is only ever the eyes."
+description = "One word, one safely pushed commit. Two machine-authored branchless kernels decide how far a change may travel and what its subject may claim: zero tokens, no API key, nothing leaves your machine but the push."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE", "COMMERCIAL.md"]
 authors = [{ name = "Devieswar Kancheti", email = "devkancheti4@gmail.com" }]
-keywords = ["git", "commit", "ollama", "local-llm", "branchless"]
+maintainers = [{ name = "Devieswar Kancheti", email = "devkancheti4@gmail.com" }]
+keywords = [
+    "git", "commit", "commit-message", "conventional-commits", "cli",
+    "branchless", "local-first", "zero-token", "offline", "ollama",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Utilities",
 ]
-# Dependency-free by design: git, the standard library, and whatever local
-# model server is already running on the machine.
+# Dependency-free by design: git, and the Python standard library.  A local
+# model is optional and is reached over HTTP with urllib when asked for.
 dependencies = []
 
 [tool.setuptools.dynamic]
@@ -27,10 +42,12 @@ version = {attr = "ship.__version__"}
 ship = ["ship.c", "say.c"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "build"]
+dev = ["pytest>=8", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/devkancheti4-design/ship"
+Repository = "https://github.com/devkancheti4-design/ship"
+Issues = "https://github.com/devkancheti4-design/ship/issues"
 
 [project.scripts]
 ship = "ship.cli:main"

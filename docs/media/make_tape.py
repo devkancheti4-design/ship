@@ -1,7 +1,7 @@
 """Generate the ship demo tape. Usage: make_tape.py REMOTE_URL DEMO_DIR OUTPUT_MP4 > tape"""
 import sys
 remote, demo, out = sys.argv[1:4]
-shipbin = "/Users/kanchetidevieswar/neo/ship/.venv/bin"
+shipbin = "$SHIP_BIN"
 T = f'''# ship: one word, one safely pushed commit. A real terminal, the real tool, a real
 # push to a real remote. Every command runs live while recording; nothing is generated.
 Output {out}

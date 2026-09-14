@@ -1,7 +1,7 @@
 # ship
 
 <p align="center">
-  <img src="docs/media/old-vs-new.gif" width="960" alt="The same folder pushed twice, for real: first with five git commands and a commit message typed by hand, then with the single line ship ../new.git, which measures, summarises, commits and pushes it.">
+  <img src="https://raw.githubusercontent.com/devkancheti4-design/ship/main/docs/media/old-vs-new.gif" width="960" alt="The same folder pushed twice, for real: first with five git commands and a commit message typed by hand, then with the single line ship ../new.git, which measures, summarises, commits and pushes it.">
 </p>
 
 **One word, one safely pushed commit.** Type `ship` and your change is
@@ -11,13 +11,18 @@ machine-authored, exhaustively proved kernels decide how far the change may
 travel and what its subject line may claim.
 
 ```bash
-python -m pip install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip
+pip install ship-cli
 ```
 
-That form needs no git to install (git is still needed to run) and lands in the
-same Python you invoke. If the `ship` command is then "not recognized" (Windows
-without pip's `Scripts` folder on PATH), run it as `python -m ship` instead of
-`ship`; every command below works both ways.
+The package is `ship-cli`; the command it installs is `ship`. If that command
+is then "not recognized" (Windows, when pip's `Scripts` folder is not on
+PATH), run it as `python -m ship` instead of `ship` — every command below
+works both ways. Git must be installed too, since everything ship does is
+git. To install the latest `main` rather than a release:
+
+```bash
+python -m pip install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip
+```
 
 ```bash
 ship                         # stage, summarise, commit, push, as far as the law allows
@@ -30,12 +35,12 @@ ship selfcheck               # re-derive both laws over all 256 inputs, in Pytho
 ```
 
 <p align="center">
-  <img src="docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
+  <img src="https://raw.githubusercontent.com/devkancheti4-design/ship/main/docs/media/one-word.gif" width="960" alt="A plain terminal: two files are typed in, the word ship is typed, and the change is measured, summarised, committed and pushed to GitHub as feat(billing): add price_after_discount.">
 </p>
 
 To have the bare word `ship` on PATH on Windows, either install with
 `pipx install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip`
-or add the folder that `python -m pip show -f ship` lists for `ship.exe` to PATH.
+or add the folder that `python -m pip show -f ship-cli` lists for `ship.exe` to PATH.
 
 ## Why this exists
 
@@ -83,7 +88,7 @@ Without `-i`, `ship` acts on the ruling at once. Either way these hold:
   test run are not part of the change that was ruled on.
 
 <p align="center">
-  <img src="docs/media/refused.gif" width="960" alt="An AWS key is written into .env; ship refuses with act NONE, reports SECRET at .env line 1, and git status shows the tree untouched.">
+  <img src="https://raw.githubusercontent.com/devkancheti4-design/ship/main/docs/media/refused.gif" width="960" alt="An AWS key is written into .env; ship refuses with act NONE, reports SECRET at .env line 1, and git status shows the tree untouched.">
 </p>
 
 ## Zero tokens, zero keys, 100% private
@@ -101,9 +106,9 @@ measure whether the push would fast-forward, and the push itself.
 
 | | |
 |---|---|
-| wheel | 38 KB |
+| wheel | 54 kB |
 | runtime dependencies | 0 (git and the Python standard library) |
-| source | 1,913 lines including both kernels and their C self-checks |
+| source | 1,994 lines including both kernels and their C self-checks |
 | the two kernels | 20 and 8 machine instructions, no branches |
 | a full run | 0.1 to 0.8 s wall on a small repo, test suite included |
 
@@ -129,7 +134,7 @@ The act is a ladder, and the change climbs it only as far as the SHIP law rules:
 
 Every bit is measured, none is an opinion, and all are measured before the
 first git write. What counts as a secret shape, a protected branch or a bulk
-change lives in the measurement ([measure.py](src/ship/measure.py)), never in
+change lives in the measurement ([measure.py](https://github.com/devkancheti4-design/ship/blob/main/src/ship/measure.py)), never in
 the law.
 
 | bit | name | tier | set when |
@@ -149,7 +154,7 @@ that could not complete. The law never receives "unknown".
 
 ### The SAY byte: what the subject may claim
 
-The eyes are measurement too ([mechanical.py](src/ship/mechanical.py)).
+The eyes are measurement too ([mechanical.py](https://github.com/devkancheti4-design/ship/blob/main/src/ship/mechanical.py)).
 Eight facts about the change become a byte; the SAY law turns the byte into
 the KIND of claim the subject line may make; the body supplies the nouns.
 
@@ -186,9 +191,9 @@ so the SHIP law's BLIND can only fire when git itself fails.
 
 ### The laws
 
-[`ship.c`](src/ship/ship.c) and [`say.c`](src/ship/say.c) were authored by
-search and are vendored verbatim; [`law.py`](src/ship/law.py) and
-[`say.py`](src/ship/say.py) carry the same lane expressions character for
+[`ship.c`](https://github.com/devkancheti4-design/ship/blob/main/src/ship/ship.c) and [`say.c`](https://github.com/devkancheti4-design/ship/blob/main/src/ship/say.c) were authored by
+search and are vendored verbatim; [`law.py`](https://github.com/devkancheti4-design/ship/blob/main/src/ship/law.py) and
+[`say.py`](https://github.com/devkancheti4-design/ship/blob/main/src/ship/say.py) carry the same lane expressions character for
 character, and a test fails if they drift. Both are ladders: tiers nest, so
 they are bits of one mask in tier order, and `ctz` returns the answer with
 no encoding step.
@@ -252,7 +257,7 @@ compiled with your `cc`, each against a branchy oracle that shares no
 expression with the kernel. Emitted for arm64 by clang `-O2`: **ship() is
 20 instructions including `ret`, say() is 8; 0 branches, 0 compares, 0
 selects, 0 loads** in either. The authoring prompts are
-[SHIP_LAW_PROMPT.md](SHIP_LAW_PROMPT.md) and [SAY_LAW_PROMPT.md](SAY_LAW_PROMPT.md).
+[SHIP_LAW_PROMPT.md](https://github.com/devkancheti4-design/ship/blob/main/SHIP_LAW_PROMPT.md) and [SAY_LAW_PROMPT.md](https://github.com/devkancheti4-design/ship/blob/main/SAY_LAW_PROMPT.md).
 
 ### Measure only what the ruling depends on
 
@@ -304,7 +309,7 @@ wrong, but nothing in it is auditable.
 | the silent model                        | `0x91` | STAGE  | 0.3 s | index holds the change, `.git/SHIP_MSG` explains; no commit |
 | the diverged branch (remote 1 ahead)    | `0x01` | COMMIT | 2.0 s | committed locally; never rebased, merged or forced |
 
-The test suite (196 tests, hermetic git, a test double for the eyes)
+The test suite (228 tests, hermetic git, a test double for the eyes)
 builds every one of these in a real repository and checks the tree, the
 index, the history, the remote and the message afterwards, plus: a hook
 that rejects the commit is reported (exit 3), not hidden; a file the check
@@ -346,7 +351,10 @@ repository.
 
 ## Status
 
-Alpha. Installed from GitHub; not on PyPI. Python
-3.10+ and any git from the last several years (the test suite wants 2.28+
-for `init -b`). No model, no server, no account, no key. Ollama is used
-only if you ask for it.
+Alpha. On PyPI as `ship-cli`, source at
+https://github.com/devkancheti4-design/ship. Python 3.10+ and any git from
+the last several years (the test suite wants 2.28+ for `init -b`). No model,
+no server, no account, no key. Ollama is used only if you ask for it.
+
+Licensed AGPL-3.0-or-later, with a commercial option: see
+[COMMERCIAL.md](https://github.com/devkancheti4-design/ship/blob/main/COMMERCIAL.md).
