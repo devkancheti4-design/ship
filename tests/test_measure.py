@@ -365,3 +365,19 @@ def test_a_real_shaped_aws_key_is_still_a_secret(repo):
     (repo / "config.py").write_text(f"KEY = '{LIVE_AWS_KEY}'\n")
     secret = scan(repo)[2]
     assert secret[0] and "AWS access key" in secret[1]
+
+
+# ---- PROTECTED is about where the push lands, not where you stand
+def test_a_branch_whose_upstream_is_main_is_protected(repo, remote):
+    """git checkout -b mywork origin/main tracks main; a push there is a push to main."""
+    sh(repo, "branch", "-M", "main")
+    sh(repo, "push", "-q", "-u", "origin", "main")
+    sh(repo, "checkout", "-q", "-b", "mywork", "origin/main")
+    prot = M.measure_protected(str(repo))
+    assert prot[0] and "pushes to origin/main, which is protected" in prot[1]
+
+
+def test_a_branch_with_its_own_upstream_is_not_protected(repo, remote):
+    sh(repo, "checkout", "-q", "-b", "topic")
+    sh(repo, "push", "-q", "-u", "origin", "topic")
+    assert M.measure_protected(str(repo)) == (False, "branch topic")

@@ -296,13 +296,7 @@ def well_formed(summary: Optional[str]) -> tuple[bool, str]:
     return False, f"subject {subject!r}"
 
 
-def measure_protected(repo: str) -> tuple[bool, str]:
-    b = current_branch(repo)
-    if b is None:
-        return True, "HEAD is detached"
-    if b in PROTECTED_NAMES or any(b.startswith(p) for p in PROTECTED_PREFIXES):
-        return True, f"branch {b} is protected"
-    return False, f"branch {b}"
+
 
 
 @dataclass
@@ -324,6 +318,29 @@ def push_target(repo: str) -> Optional[PushTarget]:
     if r and m and r in remotes:
         return PushTarget(r, b, f"{r}/{m.removeprefix('refs/heads/')}")
     return PushTarget("origin" if "origin" in remotes else remotes[0], b, None)
+
+
+def _protected_name(name: str) -> bool:
+    return name in PROTECTED_NAMES or any(name.startswith(p) for p in PROTECTED_PREFIXES)
+
+
+def measure_protected(repo: str) -> tuple[bool, str]:
+    """Protected means the branch the push would WRITE TO, not the one you happen to stand on.
+
+    `git checkout -b mywork origin/main` leaves the local branch tracking main, and ship pushes
+    to the upstream refspec, so measuring only the local name would wave a push to main through.
+    """
+    b = current_branch(repo)
+    if b is None:
+        return True, "HEAD is detached"
+    if _protected_name(b):
+        return True, f"branch {b} is protected"
+    t = push_target(repo)
+    if t is not None and t.upstream:
+        remote_branch = t.upstream[len(t.remote) + 1:]
+        if _protected_name(remote_branch):
+            return True, f"branch {b} pushes to {t.upstream}, which is protected"
+    return False, f"branch {b}"
 
 
 def measure_forward(repo: str, timeout: int = 60) -> tuple[bool, str]:

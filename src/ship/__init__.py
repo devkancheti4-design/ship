@@ -9,5 +9,5 @@ pipeline (pipeline.py) runs exactly as far as the ruling says.
 from .law import ship, NONE, STAGE, COMMIT, PUSH
 from .pipeline import run, rule, actuate
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ["ship", "run", "rule", "actuate", "NONE", "STAGE", "COMMIT", "PUSH", "__version__"]

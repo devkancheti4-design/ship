@@ -221,3 +221,17 @@ def test_render_names_every_measured_bit(repo, remote, eyes, monkeypatch):
     for name in law.NAMES.values():
         assert name in text
     assert text.startswith("ship  byte 0x81  DIRTY FORWARD")
+
+
+def test_ship_never_pushes_to_main_through_an_upstream(repo, remote, eyes, monkeypatch):
+    """The end-to-end guarantee: a branch tracking main gets a local commit, never a push."""
+    monkeypatch.setenv("SHIP_CHECK", "true")
+    sh(repo, "branch", "-M", "main")
+    sh(repo, "push", "-q", "-u", "origin", "main")
+    before = remote_head(remote, "main")
+    sh(repo, "checkout", "-q", "-b", "mywork", "origin/main")
+    add_change(repo)
+    ruling, outcome, code = run(str(repo), eyes=eyes)
+    assert ruling.act == COMMIT and ruling.byte & PROTECTED
+    assert outcome.commit and outcome.pushed is None
+    assert remote_head(remote, "main") == before
