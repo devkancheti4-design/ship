@@ -1,7 +1,7 @@
 # Publishes to PyPI via Trusted Publishing (OIDC) — no token stored anywhere.
 # One-time setup on PyPI (must be done in the browser by the project owner):
 #   pypi.org -> Your account -> Publishing -> Add a new pending publisher:
-#     project:      commitship
+#     project:      commitship-cli
 #     owner:        devkancheti4-design
 #     repo:         ship
 #     workflow:     publish.yml
@@ -63,7 +63,7 @@ jobs:
           def need(cond, msg):
               if not cond:
                   sys.exit(f"publish gate: {msg}")
-          need("Name: commitship" in m, "wheel is not named commitship")
+          need("Name: commitship-cli" in m, "wheel is not named commitship-cli")
           need("License-Expression: AGPL-3.0-or-later" in m, "licence expression missing")
           need(sum(n.endswith(("licenses/LICENSE", "licenses/COMMERCIAL.md")) for n in names) == 2,
                "LICENSE and COMMERCIAL.md are not inside the wheel")

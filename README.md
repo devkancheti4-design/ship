@@ -11,10 +11,10 @@ machine-authored, exhaustively proved kernels decide how far the change may
 travel and what its subject line may claim.
 
 ```bash
-pip install commitship
+pip install commitship-cli
 ```
 
-The package on PyPI is `commitship`; the command it installs is `ship`. If that command
+The package on PyPI is `commitship-cli`; the command it installs is `ship`. If that command
 is then "not recognized" (Windows, when pip's `Scripts` folder is not on
 PATH), run it as `python -m ship` instead of `ship` — every command below
 works both ways. Git must be installed too, since everything ship does is
@@ -40,7 +40,7 @@ ship selfcheck               # re-derive both laws over all 256 inputs, in Pytho
 
 To have the bare word `ship` on PATH on Windows, either install with
 `pipx install https://github.com/devkancheti4-design/ship/archive/refs/heads/main.zip`
-or add the folder that `python -m pip show -f commitship` lists for `ship.exe` to PATH.
+or add the folder that `python -m pip show -f commitship-cli` lists for `ship.exe` to PATH.
 
 ## Why this exists
 
@@ -351,7 +351,7 @@ repository.
 
 ## Status
 
-Alpha. On PyPI as `commitship`, source at
+Alpha. On PyPI as `commitship-cli`, source at
 https://github.com/devkancheti4-design/ship. Python 3.10+ and any git from
 the last several years (the test suite wants 2.28+ for `init -b`). No model,
 no server, no account, no key. Ollama is used only if you ask for it.
